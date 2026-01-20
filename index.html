@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Asya Ustadımız — İş Analisti</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <meta name="description" content="Asya Ustadımız — İş Analisti. Veri odaklı çözümler, gereksinim analizi ve süreç iyileştirme.">
+  <style>
+    :root{
+      --bg1:#0f172a;
+      --bg2:#0b3b5a;
+      --card: rgba(255,255,255,0.06);
+      --accent: #7dd3fc;
+      --muted: rgba(255,255,255,0.75);
+      --glass: rgba(255,255,255,0.04);
+      --radius: 14px;
+      --maxw: 980px;
+      --gap: 20px;
+      color-scheme: dark;
+    }
+    *{box-sizing:border-box}
+    html,body{
+      height:100%;
+      margin:0;
+      font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,"Helvetica Neue",Arial;
+      background: linear-gradient(135deg,var(--bg1),var(--bg2));
+      color:#fff;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      line-height:1.4;
+    }
+    .wrap{
+      max-width:var(--maxw);
+      margin:48px auto;
+      padding:28px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      border-radius:calc(var(--radius) + 6px);
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      backdrop-filter: blur(6px) saturate(120%);
+    }
+    header{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:16px;
+      margin-bottom:22px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;
+    }
+    .logo{
+      width:52px;height:52px;border-radius:12px;
+      background:linear-gradient(135deg,var(--accent),#60a5fa);
+      display:grid;place-items:center;font-weight:700;color:#062a37;
+      box-shadow: 0 6px 18px rgba(45,212,191,0.06);
+      flex-shrink:0;
+    }
+    .brand h1{font-size:18px;margin:0}
+    .brand p{margin:0;font-size:13px;color:var(--muted)}
+    nav{display:flex;gap:12px;align-items:center}
+    .nav-link{
+      color:var(--muted);
+      text-decoration:none;
+      font-size:14px;
+      padding:8px 12px;
+      border-radius:10px;
+    }
+    .nav-link:hover{background:var(--glass);color:#fff}
+    .hero{
+      display:grid;
+      grid-template-columns:1fr 320px;
+      gap:var(--gap);
+      align-items:center;
+    }
+    .card{
+      background:var(--card);
+      padding:20px;
+      border-radius:var(--radius);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+    .intro h2{font-size:28px;margin:0 0 6px 0}
+    .intro p{margin:0;color:var(--muted)}
+    .buttons{margin-top:16px;display:flex;gap:10px;flex-wrap:wrap}
+    .btn{
+      background:linear-gradient(90deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
+      color:#fff;padding:10px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);
+      text-decoration:none;font-weight:600;font-size:14px;
+      display:inline-flex;gap:8px;align-items:center;
+    }
+    .btn.primary{
+      background:linear-gradient(90deg,var(--accent),#60a5fa);
+      color:#042c36;border:none;
+      box-shadow:0 8px 20px rgba(96,165,250,0.12);
+    }
+    .profile{
+      display:flex;flex-direction:column;align-items:center;gap:14px;text-align:center;
+    }
+    .avatar{
+      width:140px;height:140px;border-radius:18px;background:linear-gradient(135deg,#071429,#072a48);
+      display:grid;place-items:center;font-size:42px;font-weight:700;color:var(--accent);
+      border:1px solid rgba(255,255,255,0.04);
+    }
+    .meta{font-size:14px;color:var(--muted)}
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:12px;
+      margin-top:20px;
+    }
+    .chip{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), transparent);
+      padding:10px;border-radius:12px;font-weight:600;font-size:13px;
+      text-align:center;border:1px solid rgba(255,255,255,0.03);
+    }
+    section{margin-top:22px}
+    .about p{color:var(--muted);margin:0}
+    .skills-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+    .skill{background:rgba(255,255,255,0.04);padding:8px 10px;border-radius:999px;font-size:13px}
+    footer{margin-top:26px;text-align:center;color:var(--muted);font-size:13px}
+    /* Responsive */
+    @media (max-width:900px){
+      .hero{grid-template-columns:1fr}
+      .grid{grid-template-columns:repeat(2,1fr)}
+      .wrap{margin:24px;padding:18px}
+    }
+    @media (max-width:520px){
+      header{flex-direction:column;align-items:flex-start;gap:12px}
+      nav{width:100%;display:flex;justify-content:flex-start;flex-wrap:wrap}
+      .grid{grid-template-columns:1fr}
+      .avatar{width:120px;height:120px}
+      .intro h2{font-size:22px}
+    }
+    /* small link styling */
+    a.inline{color:var(--accent);text-decoration:none}
+  </style>
+</head>
+<body>
+  <main class="wrap" role="main">
+    <header>
+      <div class="brand">
+        <div class="logo">AU</div>
+        <div>
+          <h1>Asya Ustadımız</h1>
+          <p>İş Analisti — Veri odaklı, sonuç odaklı</p>
+        </div>
+      </div>
+      <nav aria-label="Ana menü">
+        <a class="nav-link" href="#about">Hakkımda</a>
+        <a class="nav-link" href="#skills">Yetenekler</a>
+        <a class="nav-link" href="#contact">İletişim</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <div class="card intro">
+        <h2>Merhaba, ben Asya — İş Analistiyim</h2>
+        <p>Veri ve süreçleri birleştirip karar vericilere açık, uygulanabilir içgörüler sunuyorum. Gereksinim analizi, veri keşfi ve süreç iyileştirme üzerine çalışıyorum.</p>
+        <div class="buttons">
+          <a class="btn primary" href="#contact">İletişime Geç</a>
+          <a class="btn" href="#skills">Yeteneklerim</a>
+        </div>
+
+        <div class="grid" style="margin-top:18px">
+          <div class="chip">İş Analizi</div>
+          <div class="chip">Veri Analizi</div>
+          <div class="chip">SQL</div>
+          <div class="chip">UML & Dokümantasyon</div>
+          <div class="chip">Agile / Scrum</div>
+          <div class="chip">Raporlama</div>
+        </div>
+      </div>
+
+      <aside class="card profile" aria-label="Profil kartı">
+        <div class="avatar" aria-hidden="true">AU</div>
+        <div>
+          <div class="meta">İş Analisti</div>
+          <div style="margin-top:8px;color:var(--muted);font-size:13px">İstanbul</div>
+        </div>
+        <div style="width:100%;margin-top:8px;display:flex;gap:8px;justify-content:center">
+          <a class="btn" href="https://github.com/asyaustadimiz" target="_blank" rel="noopener">GitHub</a>
+          <a class="btn" href="https://tr.linkedin.com/in/asya-berfin-%C3%BCstad%C4%B1m%C4%B1z-774a92162" target="_blank" rel="noopener">LinkedIn</a>
+        </div>
+      </aside>
+    </section>
+
+    <section id="about" class="about">
+      <div class="card">
+        <h3 style="margin-top:0">Kısa</h3>
+        <p>Beş yılı aşkın sürede, iş süreçlerini analiz edip veri odaklı çözümler tasarladım; paydaş iletişimi, gereksinim çıkarımı ve KPI'lar ile performans takibi üzerine deneyimim var.</p>
+      </div>
+    </section>
+
+    <section id="skills" class="skills">
+      <div class="card">
+        <h3 style="margin-top:0">Temel Yetenekler</h3>
+        <div class="skills-list">
+          <span class="skill">Gereksinim Analizi</span>
+          <span class="skill">Süreç Haritalama</span>
+          <span class="skill">SQL & Veri Keşfi</span>
+          <span class="skill">Dashboard & Raporlama</span>
+          <span class="skill">Stakeholder Yönetimi</span>
+          <span class="skill">User Stories & Acceptance Criteria</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="contact" class="contact">
+      <div class="card">
+        <h3 style="margin-top:0">İletişim</h3>
+        <p style="color:var(--muted);margin-bottom:12px">E-posta veya LinkedIn üzerinden ulaşabilirsiniz.</p>
+        <p> · <a class="inline" href="https://github.com/asyaustadimiz" target="_blank" rel="noopener">github.com/asyaustadimiz</a></p>
+      </div>
+    </section>
+
+    <footer>
+      © 2026 Asya Ustadımız — İş Analisti
+    </footer>
+  </main>
+
+  <script>
+    // Küçük erişilebilir JS: URL fragment'ine tıklanınca yumuşak kaydırma
+    (function(){
+      if('scrollBehavior' in document.documentElement.style === false){
+        // eski tarayıcılar için fallback yok, modern tarayıcılarda çalışır
+        return;
+      }
+      const links = document.querySelectorAll('a[href^="#"]');
+      links.forEach(a => {
+        a.addEventListener('click', function(e){
+          const targetId = this.getAttribute('href').slice(1);
+          if(!targetId) return;
+          const el = document.getElementById(targetId);
+          if(el){
+            e.preventDefault();
+            el.scrollIntoView({behavior:'smooth',block:'start'});
+            history.pushState(null,'', '#'+targetId);
+          }
+        });
+      });
+    })();
+  </script>
+</body>
+</html>
