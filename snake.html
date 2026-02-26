@@ -2,148 +2,228 @@
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
-<title>Snake II - 3310 Emülatör</title>
+<title>Snake II - 3310</title>
 <style>
-body{margin:0;background:#111;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;font-family:monospace;}
-.phone{background:#7f8c3a;padding:30px;border-radius:30px;box-shadow:0 0 60px black inset,0 0 40px black;}
-.screen{position:relative;width:336px;height:192px;background:#9bbc0f;border:10px solid #556b2f;}
-canvas{width:100%;height:100%;image-rendering:pixelated;}
-.overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#0f380f;font-weight:bold;text-align:center;}
-.selected{background:#0f380f;color:#9bbc0f;padding:2px 6px;}
-.pauseText{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#0f380f;font-weight:bold;display:none;font-size:14px;}
-.controls{margin-top:10px;display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(3,60px);gap:5px;}
-.btn{background:#9bbc0f;color:#0f380f;font-weight:bold;font-size:18px;border:2px solid #556b2f;border-radius:8px;display:flex;justify-content:center;align-items:center;user-select:none;cursor:pointer;}
+body{
+    background:#111;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+    font-family:monospace;
+}
+.phone{
+    background:#7f8c3a;
+    padding:40px;
+    border-radius:30px;
+    box-shadow:0 0 60px black inset,0 0 40px black;
+}
+.screen{
+    width:336px;
+    height:192px;
+    background:#9bbc0f;
+    border:10px solid #556b2f;
+    position:relative;
+    image-rendering:pixelated;
+}
+canvas{
+    width:100%;
+    height:100%;
+}
+.overlay{
+    position:absolute;
+    top:0;left:0;
+    width:100%;height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:#0f380f;
+    font-weight:bold;
+    text-align:center;
+}
+.selected{
+    background:#0f380f;
+    color:#9bbc0f;
+    padding:2px 6px;
+}
 </style>
 </head>
 <body>
 
 <div class="phone">
-  <div class="screen">
-    <canvas id="game" width="84" height="48"></canvas>
-    <div id="menu" class="overlay"></div>
-    <div id="pause" class="pauseText">PAUSE</div>
-  </div>
-  <div class="controls">
-    <div></div><div class="btn" data-key="ArrowUp">↑</div><div></div>
-    <div class="btn" data-key="ArrowLeft">←</div><div class="btn" data-key=" ">⏸</div><div class="btn" data-key="ArrowRight">→</div>
-    <div></div><div class="btn" data-key="ArrowDown">↓</div><div class="btn" data-key="Enter">⏎</div>
-  </div>
+<div class="screen">
+<canvas id="game" width="168" height="96"></canvas>
+<div id="menu" class="overlay"></div>
+</div>
 </div>
 
 <script>
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
-const grid=1;
-const tilesX=canvas.width;
-const tilesY=canvas.height;
 
-// Game state
+const grid=4;
+const tilesX=canvas.width/grid;
+const tilesY=canvas.height/grid;
+
+let snake,dir,food,bonus;
+let gameLoop;
 let state="menu";
-let menuIndex=0;
-let menuItems=["NEW GAME","LEVEL","SOUND","HIGH SCORE"];
 let level=3;
 let soundOn=true;
-
-let snake=[],dir="RIGHT";
-let food,bonus;
 let score=0;
 let highScore=localStorage.getItem("snake2hi")||0;
-let paused=false;
-let speed=120;
-let gameLoop;
 
-// Web Audio
+let menuIndex=0;
+let menuItems=["NEW GAME","LEVEL","SOUND","HIGH SCORE"];
+
 const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-function beep(freq,dur){if(!soundOn)return;const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;o.start();g.gain.setValueAtTime(0.1,audioCtx.currentTime);o.stop(audioCtx.currentTime+dur);}
 
-// Bitmap font 5x7
-const font={"0":["111","101","101","101","111"],"1":["010","110","010","010","111"],"2":["111","001","111","100","111"],
-"3":["111","001","111","001","111"],"4":["101","101","111","001","001"],"5":["111","100","111","001","111"],
-"6":["111","100","111","101","111"],"7":["111","001","001","001","001"],"8":["111","101","111","101","111"],
-"9":["111","101","111","001","111"],"S":["111","100","111","001","111"],"H":["101","101","111","101","101"],
-"I":["111","010","010","010","111"],":":["0","1","0","1","0"],"L":["100","100","100","100","111"]};
-
-function drawPixel(x,y,color="#0f380f"){ctx.fillStyle=color;ctx.fillRect(x,y,1,1);}
-function drawChar(ch,x,y){const map=font[ch];if(!map)return;map.forEach((row,ry)=>{row.split("").forEach((col,rx)=>{if(col==="1")drawPixel(x+rx,y+ry);});});}
-function drawText(text,x,y){text.split("").forEach((c,i)=>{drawChar(c,x+i*6,y);});}
-
-// Helpers
-function randomPos(){return{x:Math.floor(Math.random()*tilesX),y:Math.floor(Math.random()*tilesY)}}
-function spawnBonus(){bonus=randomPos();setTimeout(()=>bonus=null,5000);}
-
-// Menu
-function renderMenu(title="SNAKE II"){
-  const menu=document.getElementById("menu");
-  menu.innerHTML="";
-  menu.style.display="flex";
-  const h=document.createElement("div");h.innerText=title;menu.appendChild(h);
-  menuItems.forEach((item,i)=>{
-    let text=item;
-    if(item==="LEVEL")text+=": "+level;
-    if(item==="SOUND")text+=": "+(soundOn?"ON":"OFF");
-    if(item==="HIGH SCORE")text+=": "+highScore;
-    const div=document.createElement("div");div.innerText=text;if(i===menuIndex)div.className="selected";menu.appendChild(div);
-  });
+function beep(freq,dur){
+    if(!soundOn)return;
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value=freq;
+    osc.start();
+    gain.gain.setValueAtTime(0.1,audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime+dur);
 }
 
-// Game
+function drawPixel(x,y,color="#0f380f"){
+    ctx.fillStyle=color;
+    ctx.fillRect(x*grid,y*grid,grid,grid);
+}
+
+function randomPos(){
+    return{
+        x:Math.floor(Math.random()*tilesX),
+        y:Math.floor(Math.random()*tilesY)
+    }
+}
+
 function startGame(){
-  snake=[{x:42,y:24}];dir="RIGHT";food=randomPos();bonus=null;score=0;speed=140-(level*10);paused=false;state="game";document.getElementById("menu").style.display="none";
-  clearInterval(gameLoop);gameLoop=setInterval(update,speed);
+    snake=[{x:10,y:10}];
+    dir="RIGHT";
+    food=randomPos();
+    bonus=null;
+    score=0;
+    state="game";
+    loopStart();
+}
+
+function loopStart(){
+    clearInterval(gameLoop);
+    let speed=160-(level*12);
+    gameLoop=setInterval(update,speed);
 }
 
 function update(){
-  ctx.fillStyle="#9bbc0f";ctx.fillRect(0,0,canvas.width,canvas.height);
-  if(paused){document.getElementById("pause").style.display="block";return;}else document.getElementById("pause").style.display="none";
+    ctx.fillStyle="#9bbc0f";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  snake.forEach(p=>drawPixel(p.x,p.y));
-  drawPixel(food.x,food.y);
-  if(bonus)drawPixel(bonus.x,bonus.y,"#143d14");
+    snake.forEach(p=>drawPixel(p.x,p.y));
+    drawPixel(food.x,food.y);
 
-  let head={...snake[0]};
-  if(dir==="LEFT")head.x--;if(dir==="RIGHT")head.x++;if(dir==="UP")head.y--;if(dir==="DOWN")head.y++;
-  if(head.x<0)head.x=tilesX-1;if(head.x>=tilesX)head.x=0;if(head.y<0)head.y=tilesY-1;if(head.y>=tilesY)head.y=0;
+    if(bonus){
+        drawPixel(bonus.x,bonus.y,"#143d14");
+    }
 
-  if(snake.some(p=>p.x===head.x&&p.y===head.y)){beep(200,0.3);resetGame();return;}
-  snake.unshift(head);
+    let head={...snake[0]};
+    if(dir==="LEFT")head.x--;
+    if(dir==="RIGHT")head.x++;
+    if(dir==="UP")head.y--;
+    if(dir==="DOWN")head.y++;
 
-  if(head.x===food.x&&head.y===food.y){score++;beep(900,0.05);food=randomPos();if(score%8===0)spawnBonus();}
-  else if(bonus&&head.x===bonus.x&&head.y===bonus.y){score+=5;bonus=null;beep(1200,0.1);}
-  else{snake.pop();}
+    // duvar çarpma
+    if(head.x<0||head.x>=tilesX||head.y<0||head.y>=tilesY||
+       snake.some(p=>p.x===head.x&&p.y===head.y)){
+        gameOver();
+        return;
+    }
 
-  if(score>highScore){highScore=score;localStorage.setItem("snake2hi",highScore);}
-  drawText("S:"+score,1,1);drawText("H:"+highScore,40,1);drawText("L:"+level,70,1);
+    snake.unshift(head);
+
+    if(head.x===food.x&&head.y===food.y){
+        score++;
+        beep(800,0.05);
+        food=randomPos();
+        if(score%8===0)spawnBonus();
+    }
+    else if(bonus&&head.x===bonus.x&&head.y===bonus.y){
+        score+=5;
+        bonus=null;
+        beep(1200,0.1);
+    }
+    else{
+        snake.pop();
+    }
+
+    drawHUD();
 }
 
-function resetGame(){snake=[{x:42,y:24}];dir="RIGHT";score=0;food=randomPos();bonus=null;}
-
-// Controls
-function handleKey(key){
-  if(state==="menu"){
-    if(key==="ArrowUp"){menuIndex=(menuIndex+menuItems.length-1)%menuItems.length;renderMenu();}
-    if(key==="ArrowDown"){menuIndex=(menuIndex+1)%menuItems.length;renderMenu();}
-    if(key==="Enter"){
-      if(menuIndex===0)startGame();
-      if(menuIndex===1){level=level<9?level+1:1;renderMenu();}
-      if(menuIndex===2){soundOn=!soundOn;renderMenu();}
-    }
-  }else if(state==="game"){
-    if(key===" "){paused=!paused;}
-    if(!paused){
-      if(key==="ArrowLeft"&&dir!=="RIGHT")dir="LEFT";
-      if(key==="ArrowRight"&&dir!=="LEFT")dir="RIGHT";
-      if(key==="ArrowUp"&&dir!=="DOWN")dir="UP";
-      if(key==="ArrowDown"&&dir!=="UP")dir="DOWN";
-    }
-  }
+function spawnBonus(){
+    bonus=randomPos();
+    setTimeout(()=>bonus=null,5000);
 }
 
-// keyboard
-document.addEventListener("keydown",e=>handleKey(e.key));
+function drawHUD(){
+    ctx.fillStyle="#0f380f";
+    ctx.font="6px monospace";
+    ctx.fillText("S:"+score+" HI:"+highScore,2,6);
+}
 
-// on-screen buttons
-document.querySelectorAll(".btn").forEach(b=>{
-  b.addEventListener("click",()=>handleKey(b.getAttribute("data-key")));
+function gameOver(){
+    beep(200,0.3);
+    clearInterval(gameLoop);
+    if(score>highScore){
+        highScore=score;
+        localStorage.setItem("snake2hi",highScore);
+    }
+    state="menu";
+    renderMenu("GAME OVER");
+}
+
+function renderMenu(title="SNAKE II"){
+    const menu=document.getElementById("menu");
+    menu.innerHTML="";
+    menu.style.display="flex";
+
+    const h=document.createElement("div");
+    h.innerText=title;
+    menu.appendChild(h);
+
+    menuItems.forEach((item,i)=>{
+        let text=item;
+        if(item==="LEVEL")text+=": "+level;
+        if(item==="SOUND")text+=": "+(soundOn?"ON":"OFF");
+        if(item==="HIGH SCORE")text+=": "+highScore;
+
+        const div=document.createElement("div");
+        div.innerText=text;
+        if(i===menuIndex)div.className="selected";
+        menu.appendChild(div);
+    });
+}
+
+document.addEventListener("keydown",e=>{
+    if(state==="menu"){
+        if(e.key==="ArrowUp"){menuIndex=(menuIndex+menuItems.length-1)%menuItems.length;renderMenu();}
+        if(e.key==="ArrowDown"){menuIndex=(menuIndex+1)%menuItems.length;renderMenu();}
+        if(e.key==="Enter"){
+            if(menuIndex===0){document.getElementById("menu").style.display="none";startGame();}
+            if(menuIndex===1){level=level<9?level+1:1;renderMenu();}
+            if(menuIndex===2){soundOn=!soundOn;renderMenu();}
+        }
+    }
+    else if(state==="game"){
+        if(e.key==="ArrowLeft"&&dir!=="RIGHT")dir="LEFT";
+        if(e.key==="ArrowRight"&&dir!=="LEFT")dir="RIGHT";
+        if(e.key==="ArrowUp"&&dir!=="DOWN")dir="UP";
+        if(e.key==="ArrowDown"&&dir!=="UP")dir="DOWN";
+    }
 });
 
 renderMenu();
