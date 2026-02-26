@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Snake II - 3310</title>
+<style>
+body{
+    background:#111;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height:100vh;
+    margin:0;
+    font-family:monospace;
+}
+.phone{
+    background:#7f8c3a;
+    padding:40px;
+    border-radius:30px;
+    box-shadow:0 0 60px black inset,0 0 40px black;
+}
+.screen{
+    width:336px;
+    height:192px;
+    background:#9bbc0f;
+    border:10px solid #556b2f;
+    position:relative;
+    image-rendering:pixelated;
+}
+canvas{
+    width:100%;
+    height:100%;
+}
+.overlay{
+    position:absolute;
+    top:0;left:0;
+    width:100%;height:100%;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    color:#0f380f;
+    font-weight:bold;
+    text-align:center;
+}
+.selected{
+    background:#0f380f;
+    color:#9bbc0f;
+    padding:2px 6px;
+}
+</style>
+</head>
+<body>
+
+<div class="phone">
+<div class="screen">
+<canvas id="game" width="168" height="96"></canvas>
+<div id="menu" class="overlay"></div>
+</div>
+</div>
+
+<script>
+const canvas=document.getElementById("game");
+const ctx=canvas.getContext("2d");
+
+const grid=4;
+const tilesX=canvas.width/grid;
+const tilesY=canvas.height/grid;
+
+let snake,dir,food,bonus;
+let gameLoop;
+let state="menu";
+let level=3;
+let soundOn=true;
+let score=0;
+let highScore=localStorage.getItem("snake2hi")||0;
+
+let menuIndex=0;
+let menuItems=["NEW GAME","LEVEL","SOUND","HIGH SCORE"];
+
+const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+
+function beep(freq,dur){
+    if(!soundOn)return;
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.frequency.value=freq;
+    osc.start();
+    gain.gain.setValueAtTime(0.1,audioCtx.currentTime);
+    osc.stop(audioCtx.currentTime+dur);
+}
+
+function drawPixel(x,y,color="#0f380f"){
+    ctx.fillStyle=color;
+    ctx.fillRect(x*grid,y*grid,grid,grid);
+}
+
+function randomPos(){
+    return{
+        x:Math.floor(Math.random()*tilesX),
+        y:Math.floor(Math.random()*tilesY)
+    }
+}
+
+function startGame(){
+    snake=[{x:10,y:10}];
+    dir="RIGHT";
+    food=randomPos();
+    bonus=null;
+    score=0;
+    state="game";
+    loopStart();
+}
+
+function loopStart(){
+    clearInterval(gameLoop);
+    let speed=160-(level*12);
+    gameLoop=setInterval(update,speed);
+}
+
+function update(){
+    ctx.fillStyle="#9bbc0f";
+    ctx.fillRect(0,0,canvas.width,canvas.height);
+
+    snake.forEach(p=>drawPixel(p.x,p.y));
+    drawPixel(food.x,food.y);
+
+    if(bonus){
+        drawPixel(bonus.x,bonus.y,"#143d14");
+    }
+
+    let head={...snake[0]};
+    if(dir==="LEFT")head.x--;
+    if(dir==="RIGHT")head.x++;
+    if(dir==="UP")head.y--;
+    if(dir==="DOWN")head.y++;
+
+    // duvar çarpma
+    if(head.x<0||head.x>=tilesX||head.y<0||head.y>=tilesY||
+       snake.some(p=>p.x===head.x&&p.y===head.y)){
+        gameOver();
+        return;
+    }
+
+    snake.unshift(head);
+
+    if(head.x===food.x&&head.y===food.y){
+        score++;
+        beep(800,0.05);
+        food=randomPos();
+        if(score%8===0)spawnBonus();
+    }
+    else if(bonus&&head.x===bonus.x&&head.y===bonus.y){
+        score+=5;
+        bonus=null;
+        beep(1200,0.1);
+    }
+    else{
+        snake.pop();
+    }
+
+    drawHUD();
+}
+
+function spawnBonus(){
+    bonus=randomPos();
+    setTimeout(()=>bonus=null,5000);
+}
+
+function drawHUD(){
+    ctx.fillStyle="#0f380f";
+    ctx.font="6px monospace";
+    ctx.fillText("S:"+score+" HI:"+highScore,2,6);
+}
+
+function gameOver(){
+    beep(200,0.3);
+    clearInterval(gameLoop);
+    if(score>highScore){
+        highScore=score;
+        localStorage.setItem("snake2hi",highScore);
+    }
+    state="menu";
+    renderMenu("GAME OVER");
+}
+
+function renderMenu(title="SNAKE II"){
+    const menu=document.getElementById("menu");
+    menu.innerHTML="";
+    menu.style.display="flex";
+
+    const h=document.createElement("div");
+    h.innerText=title;
+    menu.appendChild(h);
+
+    menuItems.forEach((item,i)=>{
+        let text=item;
+        if(item==="LEVEL")text+=": "+level;
+        if(item==="SOUND")text+=": "+(soundOn?"ON":"OFF");
+        if(item==="HIGH SCORE")text+=": "+highScore;
+
+        const div=document.createElement("div");
+        div.innerText=text;
+        if(i===menuIndex)div.className="selected";
+        menu.appendChild(div);
+    });
+}
+
+document.addEventListener("keydown",e=>{
+    if(state==="menu"){
+        if(e.key==="ArrowUp"){menuIndex=(menuIndex+menuItems.length-1)%menuItems.length;renderMenu();}
+        if(e.key==="ArrowDown"){menuIndex=(menuIndex+1)%menuItems.length;renderMenu();}
+        if(e.key==="Enter"){
+            if(menuIndex===0){document.getElementById("menu").style.display="none";startGame();}
+            if(menuIndex===1){level=level<9?level+1:1;renderMenu();}
+            if(menuIndex===2){soundOn=!soundOn;renderMenu();}
+        }
+    }
+    else if(state==="game"){
+        if(e.key==="ArrowLeft"&&dir!=="RIGHT")dir="LEFT";
+        if(e.key==="ArrowRight"&&dir!=="LEFT")dir="RIGHT";
+        if(e.key==="ArrowUp"&&dir!=="DOWN")dir="UP";
+        if(e.key==="ArrowDown"&&dir!=="UP")dir="DOWN";
+    }
+});
+
+renderMenu();
+</script>
+</body>
+</html>
