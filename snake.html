@@ -4,29 +4,36 @@
 <meta charset="UTF-8">
 <title>Snake II - 3310 Emülatör</title>
 <style>
-body{margin:0;background:#111;display:flex;justify-content:center;align-items:center;height:100vh;font-family:monospace;}
+body{margin:0;background:#111;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;font-family:monospace;}
 .phone{background:#7f8c3a;padding:30px;border-radius:30px;box-shadow:0 0 60px black inset,0 0 40px black;}
 .screen{position:relative;width:336px;height:192px;background:#9bbc0f;border:10px solid #556b2f;}
 canvas{width:100%;height:100%;image-rendering:pixelated;}
 .overlay{position:absolute;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;color:#0f380f;font-weight:bold;text-align:center;}
 .selected{background:#0f380f;color:#9bbc0f;padding:2px 6px;}
 .pauseText{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);color:#0f380f;font-weight:bold;display:none;font-size:14px;}
+.controls{margin-top:10px;display:grid;grid-template-columns:repeat(3,60px);grid-template-rows:repeat(3,60px);gap:5px;}
+.btn{background:#9bbc0f;color:#0f380f;font-weight:bold;font-size:18px;border:2px solid #556b2f;border-radius:8px;display:flex;justify-content:center;align-items:center;user-select:none;cursor:pointer;}
 </style>
 </head>
 <body>
 
 <div class="phone">
-<div class="screen">
-<canvas id="game" width="84" height="48"></canvas>
-<div id="menu" class="overlay"></div>
-<div id="pause" class="pauseText">PAUSE</div>
-</div>
+  <div class="screen">
+    <canvas id="game" width="84" height="48"></canvas>
+    <div id="menu" class="overlay"></div>
+    <div id="pause" class="pauseText">PAUSE</div>
+  </div>
+  <div class="controls">
+    <div></div><div class="btn" data-key="ArrowUp">↑</div><div></div>
+    <div class="btn" data-key="ArrowLeft">←</div><div class="btn" data-key=" ">⏸</div><div class="btn" data-key="ArrowRight">→</div>
+    <div></div><div class="btn" data-key="ArrowDown">↓</div><div class="btn" data-key="Enter">⏎</div>
+  </div>
 </div>
 
 <script>
 const canvas=document.getElementById("game");
 const ctx=canvas.getContext("2d");
-const grid=1; // 1 pixel per block for real 84x48
+const grid=1;
 const tilesX=canvas.width;
 const tilesY=canvas.height;
 
@@ -47,26 +54,14 @@ let gameLoop;
 
 // Web Audio
 const audioCtx=new (window.AudioContext||window.webkitAudioContext)();
-function beep(freq,dur){if(!soundOn)return;const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=freq;o.start();g.gain.setValueAtTime(0.1,audioCtx.currentTime);o.stop(audioCtx.currentTime+dur);}
+function beep(freq,dur){if(!soundOn)return;const o=audioCtx.createOscillator();const g=audioCtx.createGain();o.connect(g);g.connect(audioCtx.destination);o.frequency.value=f;o.start();g.gain.setValueAtTime(0.1,audioCtx.currentTime);o.stop(audioCtx.currentTime+dur);}
 
 // Bitmap font 5x7
-const font={
-"0":["111","101","101","101","111"],
-"1":["010","110","010","010","111"],
-"2":["111","001","111","100","111"],
-"3":["111","001","111","001","111"],
-"4":["101","101","111","001","001"],
-"5":["111","100","111","001","111"],
-"6":["111","100","111","101","111"],
-"7":["111","001","001","001","001"],
-"8":["111","101","111","101","111"],
-"9":["111","101","111","001","111"],
-"S":["111","100","111","001","111"],
-"H":["101","101","111","101","101"],
-"I":["111","010","010","010","111"],
-":":["0","1","0","1","0"],
-"L":["100","100","100","100","111"]
-};
+const font={"0":["111","101","101","101","111"],"1":["010","110","010","010","111"],"2":["111","001","111","100","111"],
+"3":["111","001","111","001","111"],"4":["101","101","111","001","001"],"5":["111","100","111","001","111"],
+"6":["111","100","111","101","111"],"7":["111","001","001","001","001"],"8":["111","101","111","101","111"],
+"9":["111","101","111","001","111"],"S":["111","100","111","001","111"],"H":["101","101","111","101","101"],
+"I":["111","010","010","010","111"],":":["0","1","0","1","0"],"L":["100","100","100","100","111"]};
 
 function drawPixel(x,y,color="#0f380f"){ctx.fillStyle=color;ctx.fillRect(x,y,1,1);}
 function drawChar(ch,x,y){const map=font[ch];if(!map)return;map.forEach((row,ry)=>{row.split("").forEach((col,rx)=>{if(col==="1")drawPixel(x+rx,y+ry);});});}
@@ -101,52 +96,54 @@ function update(){
   ctx.fillStyle="#9bbc0f";ctx.fillRect(0,0,canvas.width,canvas.height);
   if(paused){document.getElementById("pause").style.display="block";return;}else document.getElementById("pause").style.display="none";
 
-  // draw snake
   snake.forEach(p=>drawPixel(p.x,p.y));
   drawPixel(food.x,food.y);
   if(bonus)drawPixel(bonus.x,bonus.y,"#143d14");
 
-  // move head
   let head={...snake[0]};
   if(dir==="LEFT")head.x--;if(dir==="RIGHT")head.x++;if(dir==="UP")head.y--;if(dir==="DOWN")head.y++;
-  // WRAP
   if(head.x<0)head.x=tilesX-1;if(head.x>=tilesX)head.x=0;if(head.y<0)head.y=tilesY-1;if(head.y>=tilesY)head.y=0;
 
-  // collision
   if(snake.some(p=>p.x===head.x&&p.y===head.y)){beep(200,0.3);resetGame();return;}
   snake.unshift(head);
 
-  // eat food
   if(head.x===food.x&&head.y===food.y){score++;beep(900,0.05);food=randomPos();if(score%8===0)spawnBonus();}
   else if(bonus&&head.x===bonus.x&&head.y===bonus.y){score+=5;bonus=null;beep(1200,0.1);}
   else{snake.pop();}
 
   if(score>highScore){highScore=score;localStorage.setItem("snake2hi",highScore);}
-
   drawText("S:"+score,1,1);drawText("H:"+highScore,40,1);drawText("L:"+level,70,1);
 }
 
 function resetGame(){snake=[{x:42,y:24}];dir="RIGHT";score=0;food=randomPos();bonus=null;}
 
 // Controls
-document.addEventListener("keydown",e=>{
+function handleKey(key){
   if(state==="menu"){
-    if(e.key==="ArrowUp"){menuIndex=(menuIndex+menuItems.length-1)%menuItems.length;renderMenu();}
-    if(e.key==="ArrowDown"){menuIndex=(menuIndex+1)%menuItems.length;renderMenu();}
-    if(e.key==="Enter"){
+    if(key==="ArrowUp"){menuIndex=(menuIndex+menuItems.length-1)%menuItems.length;renderMenu();}
+    if(key==="ArrowDown"){menuIndex=(menuIndex+1)%menuItems.length;renderMenu();}
+    if(key==="Enter"){
       if(menuIndex===0)startGame();
       if(menuIndex===1){level=level<9?level+1:1;renderMenu();}
       if(menuIndex===2){soundOn=!soundOn;renderMenu();}
     }
   }else if(state==="game"){
-    if(e.key===" "){paused=!paused;}
+    if(key===" "){paused=!paused;}
     if(!paused){
-      if(e.key==="ArrowLeft"&&dir!=="RIGHT")dir="LEFT";
-      if(e.key==="ArrowRight"&&dir!=="LEFT")dir="RIGHT";
-      if(e.key==="ArrowUp"&&dir!=="DOWN")dir="UP";
-      if(e.key==="ArrowDown"&&dir!=="UP")dir="DOWN";
+      if(key==="ArrowLeft"&&dir!=="RIGHT")dir="LEFT";
+      if(key==="ArrowRight"&&dir!=="LEFT")dir="RIGHT";
+      if(key==="ArrowUp"&&dir!=="DOWN")dir="UP";
+      if(key==="ArrowDown"&&dir!=="UP")dir="DOWN";
     }
   }
+}
+
+// keyboard
+document.addEventListener("keydown",e=>handleKey(e.key));
+
+// on-screen buttons
+document.querySelectorAll(".btn").forEach(b=>{
+  b.addEventListener("click",()=>handleKey(b.getAttribute("data-key")));
 });
 
 renderMenu();
