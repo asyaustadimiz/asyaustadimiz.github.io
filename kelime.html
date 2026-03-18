@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>Kelimeleri Çöz Pro</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: radial-gradient(circle at top, #1a1a2e, #0f0f1a);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+/* kart */
+.container {
+    width: 450px;
+    background: rgba(40,40,70,0.9);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.8);
+    backdrop-filter: blur(10px);
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 15px;
+}
+
+.menu, .game, .gameover {
+    display: none;
+}
+
+.active {
+    display: block;
+}
+
+input, button {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* input */
+input {
+    padding: 14px;
+    margin-top: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+}
+
+/* button */
+button {
+    padding: 14px;
+    margin-top: 12px;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(45deg, #4facfe, #00f2fe);
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: scale(1.03);
+}
+
+/* cümle */
+.sentence {
+    background: #111;
+    padding: 18px;
+    border-radius: 12px;
+    margin-top: 15px;
+    font-size: 20px;
+    text-align: center;
+    letter-spacing: 2px;
+    transition: all 0.3s;
+}
+
+/* zorlaştırıcı efektler */
+.blur {
+    filter: blur(2px);
+}
+
+.jitter {
+    animation: jitter 0.2s infinite;
+}
+
+@keyframes jitter {
+    0% { transform: translate(0px, 0px); }
+    25% { transform: translate(1px, -1px); }
+    50% { transform: translate(-1px, 1px); }
+    75% { transform: translate(1px, 1px); }
+    100% { transform: translate(0px, 0px); }
+}
+
+.stats {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.leaderboard {
+    margin-top: 15px;
+    font-size: 14px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>🧠 Kelime Oyunu PRO</h1>
+
+<div class="menu active">
+    <button onclick="startGame()">🎮 Yeni Oyun</button>
+
+    <div class="leaderboard">
+        <h3>🏆 Top List</h3>
+        <ul id="leaderboard"></ul>
+    </div>
+</div>
+
+<div class="game">
+    <div class="stats">
+        <div>⏱️ <span id="time"></span></div>
+        <div>⭐ <span id="score"></span></div>
+        <div>📈 Lv <span id="level"></span></div>
+    </div>
+
+    <div class="sentence" id="scrambled"></div>
+
+    <input id="answer" placeholder="Yaz..." />
+    <button onclick="submitAnswer()">Gönder</button>
+</div>
+
+<div class="gameover">
+    <h2>Oyun Bitti</h2>
+    <p>Skor: <span id="finalScore"></span></p>
+    <button onclick="backToMenu()">Menü</button>
+</div>
+
+</div>
+
+<script>
+const sentences = [
+"beyin kelimeleri tahmin ederek okur",
+"bağlam anlamayı kolaylaştırır",
+"osimhen çok hızlı bir futbolcudur",
+"uzun kelimeler daha zor çözülür",
+"insan zihni eksikleri tamamlar",
+"hızlı okuma tahmin gerektirir",
+"algı bazen bizi yanıltabilir",
+"karmaşık metinler zor anlaşılır",
+"dikkat dağıldığında hata artar",
+"okuma alışkanlığı fark yaratır",
+"beyin şekillere duyarlıdır",
+"tanıdık kelimeler daha kolaydır",
+"görsel algı çok güçlüdür",
+"zihin boşlukları doldurur",
+"odaklanma performansı artırır",
+"okuma pratiği hız kazandırır"
+];
+
+let current="", score=0, level=1, time=20, timer;
+
+function scramble(word, intensity=0.5){
+    if(word.length<4) return word;
+    let arr=word.slice(1,-1).split('');
+    for(let i=0;i<arr.length;i++){
+        if(Math.random()<intensity){
+            let j=Math.floor(Math.random()*arr.length);
+            [arr[i],arr[j]]=[arr[j],arr[i]];
+        }
+    }
+    return word[0]+arr.join('')+word[word.length-1];
+}
+
+function scrambleSentence(sentence){
+    let intensity=Math.min(0.2+level*0.05,0.9);
+    return sentence.split(' ').map(w=>scramble(w,intensity)).join(' ');
+}
+
+function startGame(){
+    document.querySelector('.menu').classList.remove('active');
+    document.querySelector('.game').classList.add('active');
+    score=0; level=1;
+    nextRound();
+}
+
+function nextRound(){
+    time=Math.max(5,20-level);
+    current=sentences[Math.floor(Math.random()*sentences.length)];
+
+    let el=document.getElementById("scrambled");
+    el.innerText=scrambleSentence(current);
+
+    el.className="sentence";
+
+    if(level>3) el.classList.add("blur");
+    if(level>6) el.classList.add("jitter");
+
+    document.getElementById("answer").value="";
+    document.getElementById("answer").focus();
+
+    document.getElementById("score").innerText=score;
+    document.getElementById("level").innerText=level;
+
+    startTimer();
+}
+
+function startTimer(){
+    clearInterval(timer);
+    document.getElementById("time").innerText=time;
+
+    timer=setInterval(()=>{
+        time--;
+        document.getElementById("time").innerText=time;
+        if(time<=0) endGame();
+    },1000);
+}
+
+function submitAnswer(){
+    let input=document.getElementById("answer");
+    let ans=input.value.trim();
+
+    if(ans.toLowerCase()===current.toLowerCase()){
+        score+=time*10;
+        level++;
+        nextRound();
+    }
+
+    input.value="";
+}
+
+document.getElementById("answer").addEventListener("keypress", e=>{
+    if(e.key==="Enter") submitAnswer();
+});
+
+function endGame(){
+    clearInterval(timer);
+    document.querySelector('.game').classList.remove('active');
+    document.querySelector('.gameover').classList.add('active');
+
+    document.getElementById("finalScore").innerText=score;
+    saveScore(score);
+    loadLeaderboard();
+}
+
+function backToMenu(){
+    document.querySelector('.gameover').classList.remove('active');
+    document.querySelector('.menu').classList.add('active');
+}
+
+function saveScore(s){
+    let scores=JSON.parse(localStorage.getItem("scores"))||[];
+    scores.push(s);
+    scores.sort((a,b)=>b-a);
+    scores=scores.slice(0,5);
+    localStorage.setItem("scores",JSON.stringify(scores));
+}
+
+function loadLeaderboard(){
+    let scores=JSON.parse(localStorage.getItem("scores"))||[];
+    let list=document.getElementById("leaderboard");
+    list.innerHTML="";
+    scores.forEach(s=>{
+        let li=document.createElement("li");
+        li.innerText=s;
+        list.appendChild(li);
+    });
+}
+
+loadLeaderboard();
+</script>
+
+</body>
+</html>
