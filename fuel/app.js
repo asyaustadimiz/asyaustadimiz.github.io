@@ -91,6 +91,14 @@ const translations = {
     setup_step_3: "config.js icine URL ve ANON KEY yaz",
     setup_step_4: "GitHub Pages workflow ile deploy et",
     loading: "Veriler yukleniyor...",
+    login_title: "Giris Gerekli",
+    login_desc: "Devam etmek icin uygulama sifresini girin.",
+    password: "Sifre",
+    login: "Giris Yap",
+    logout: "Cikis Yap",
+    msg_invalid_password: "Sifre hatali.",
+    msg_login_required: "Devam etmek icin once giris yapmalisiniz.",
+    setup_step_2: "schema.sql dosyasini calistir ve passwords tablosuna hash ekle",
   },
   en: {
     app_title: "RoadFuel Ledger",
@@ -182,6 +190,14 @@ const translations = {
     setup_step_3: "Put URL and ANON KEY into config.js",
     setup_step_4: "Deploy with the GitHub Pages workflow",
     loading: "Loading data...",
+    login_title: "Login Required",
+    login_desc: "Enter the application password to continue.",
+    password: "Password",
+    login: "Login",
+    logout: "Logout",
+    msg_invalid_password: "Invalid password.",
+    msg_login_required: "You must log in first.",
+    setup_step_2: "Run schema.sql and insert a hash into the passwords table",
   },
 };
 
@@ -196,6 +212,7 @@ const state = {
   records: [],
   loading: false,
   flash: null,
+  authenticated: sessionStorage.getItem("roadfuel-authenticated") === "1",
 };
 
 const appRoot = document.getElementById("app-root");
@@ -262,6 +279,33 @@ function renderHeader() {
   langSwitcher.innerHTML = `
     <button type="button" class="lang-btn ${state.lang === "tr" ? "active" : ""}" data-lang="tr">${t("lang_tr")}</button>
     <button type="button" class="lang-btn ${state.lang === "en" ? "active" : ""}" data-lang="en">${t("lang_en")}</button>
+    ${state.authenticated ? `<button type="button" class="lang-btn" data-logout="1">${t("logout")}</button>` : ""}
+  `;
+}
+
+async function sha256Hex(value) {
+  const data = new TextEncoder().encode(value);
+  const hash = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(hash))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function renderLoginScreen() {
+  modalRoot.innerHTML = "";
+  appRoot.innerHTML = `
+    <section class="hero-grid login-layout">
+      <article class="panel panel-accent login-card">
+        <h2>${t("login_title")}</h2>
+        <p>${t("login_desc")}</p>
+        <form id="login-form" class="form-grid login-form">
+          <label>${t("password")}
+            <input type="password" name="password" required autocomplete="current-password" />
+          </label>
+          <button type="submit">${t("login")}</button>
+        </form>
+      </article>
+    </section>
   `;
 }
 
@@ -648,6 +692,11 @@ function renderApp() {
     return;
   }
 
+  if (!state.authenticated) {
+    renderLoginScreen();
+    return;
+  }
+
   if (state.loading) {
     appRoot.innerHTML = `<article class="panel loader">${t("loading")}</article>`;
     return;
@@ -673,6 +722,11 @@ async function loadData() {
     return;
   }
 
+  if (!state.authenticated) {
+    renderApp();
+    return;
+  }
+
   state.loading = true;
   renderApp();
 
@@ -691,6 +745,47 @@ async function loadData() {
 
   state.vehicles = (vehiclesResponse.data || []).map(normalizeVehicle);
   state.records = (recordsResponse.data || []).map(normalizeRecord);
+  renderApp();
+}
+
+async function loginWithPassword(form) {
+  const formData = new FormData(form);
+  const password = String(formData.get("password") || "");
+  if (!password) {
+    setFlash("error", t("msg_login_required"));
+    return;
+  }
+
+  const passwordHash = await sha256Hex(password);
+  const { data, error } = await supabase
+    .from("passwords")
+    .select("id, password_hash")
+    .eq("is_active", true)
+    .eq("password_hash", passwordHash)
+    .limit(1);
+
+  if (error) {
+    setFlash("error", error.message);
+    return;
+  }
+
+  if (!data || !data.length) {
+    setFlash("error", t("msg_invalid_password"));
+    return;
+  }
+
+  state.authenticated = true;
+  sessionStorage.setItem("roadfuel-authenticated", "1");
+  setFlash("success", t("login"));
+  await loadData();
+}
+
+function logout() {
+  state.authenticated = false;
+  state.vehicles = [];
+  state.records = [];
+  sessionStorage.removeItem("roadfuel-authenticated");
+  window.location.hash = "#/";
   renderApp();
 }
 
@@ -865,6 +960,16 @@ document.addEventListener("click", async (event) => {
     return;
   }
 
+  const logoutButton = event.target.closest("[data-logout]");
+  if (logoutButton) {
+    logout();
+    return;
+  }
+
+  if (!state.authenticated) {
+    return;
+  }
+
   const openButton = event.target.closest("[data-open-modal]");
   if (openButton) {
     openModal(openButton.dataset.openModal);
@@ -901,6 +1006,16 @@ document.addEventListener("click", async (event) => {
 document.addEventListener("submit", async (event) => {
   if (!isConfigured) return;
   event.preventDefault();
+
+  if (event.target.id === "login-form") {
+    await loginWithPassword(event.target);
+    return;
+  }
+
+  if (!state.authenticated) {
+    setFlash("error", t("msg_login_required"));
+    return;
+  }
 
   if (event.target.id === "add-vehicle-form") {
     await createVehicle(event.target);

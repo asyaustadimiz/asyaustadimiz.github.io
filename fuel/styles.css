@@ -127,6 +127,21 @@ body {
   margin-bottom: 1rem;
 }
 
+.login-layout {
+  grid-template-columns: 1fr;
+  min-height: 60vh;
+  align-items: center;
+}
+
+.login-card {
+  width: min(520px, 100%);
+  margin: 0 auto;
+}
+
+.login-form {
+  grid-template-columns: 1fr;
+}
+
 .stats-grid,
 .metric-cards {
   display: grid;
