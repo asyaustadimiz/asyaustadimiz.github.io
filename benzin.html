@@ -1,0 +1,1035 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akaryakit Panorama</title>
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;900&family=Manrope:wght@400;500;700&display=swap");
+
+    :root {
+      --bg: #f4efe8;
+      --bg-2: #e9dfd3;
+      --ink: #14232e;
+      --ink-soft: #4f6573;
+      --panel: rgba(255, 255, 255, 0.86);
+      --line: rgba(20, 35, 46, 0.14);
+      --accent: #00798c;
+      --accent-2: #ef8354;
+      --accent-3: #163c53;
+      --ok: #13825f;
+      --warn: #b14d3c;
+      --shadow: 0 16px 42px rgba(20, 35, 46, 0.14);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--ink);
+      font-family: "Manrope", sans-serif;
+      background:
+        radial-gradient(90vw 55vh at -12% -20%, rgba(239, 131, 84, 0.35), transparent 60%),
+        radial-gradient(90vw 60vh at 112% -18%, rgba(0, 121, 140, 0.26), transparent 62%),
+        linear-gradient(170deg, var(--bg) 0%, #f8f4ed 44%, var(--bg-2) 100%);
+    }
+
+    .app {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 18px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .topbar {
+      position: relative;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(90deg, rgba(0, 121, 140, 0.12), rgba(239, 131, 84, 0.12)) top/100% 4px no-repeat,
+        linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 249, 241, 0.86));
+      border-radius: 22px;
+      box-shadow: var(--shadow);
+      padding: 18px;
+      overflow: hidden;
+      animation: rise 0.55s ease;
+    }
+
+    .topbar::after {
+      content: "";
+      position: absolute;
+      width: 210px;
+      height: 210px;
+      right: -64px;
+      top: -66px;
+      border-radius: 50%;
+      background: conic-gradient(from 210deg, rgba(0, 121, 140, 0.27), rgba(239, 131, 84, 0.31), rgba(22, 60, 83, 0.25));
+      filter: blur(8px);
+      pointer-events: none;
+    }
+
+    .brandline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+      position: relative;
+      z-index: 1;
+      flex-wrap: wrap;
+    }
+
+    .title {
+      margin: 0;
+      font-family: "Archivo", sans-serif;
+      font-size: clamp(1.5rem, 2.8vw, 2.55rem);
+      line-height: 1.04;
+      letter-spacing: 0.2px;
+      max-width: 760px;
+    }
+
+    .subtitle {
+      margin: 8px 0 0;
+      color: var(--ink-soft);
+      max-width: 840px;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      position: relative;
+      z-index: 1;
+    }
+
+    .stamp {
+      border-radius: 999px;
+      border: 1px solid rgba(0, 121, 140, 0.28);
+      background: rgba(0, 121, 140, 0.11);
+      color: #0d6471;
+      font-size: 0.83rem;
+      font-weight: 700;
+      padding: 7px 12px;
+      white-space: nowrap;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(5px);
+    }
+
+    .controls {
+      padding: 14px;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+      animation: rise 0.62s ease;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field.inline {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+      color: var(--ink-soft);
+      text-transform: uppercase;
+    }
+
+    input[type="search"],
+    select {
+      width: 100%;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.94);
+      color: var(--ink);
+      border-radius: 12px;
+      padding: 10px 11px;
+      font: inherit;
+      outline: none;
+      transition: transform 0.15s ease, border-color 0.2s ease;
+    }
+
+    input[type="search"]:focus,
+    select:focus {
+      border-color: rgba(0, 121, 140, 0.62);
+      transform: translateY(-1px);
+    }
+
+    .seg {
+      display: inline-flex;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.84);
+      padding: 4px;
+      gap: 4px;
+      width: fit-content;
+      max-width: 100%;
+      flex-wrap: wrap;
+    }
+
+    .seg button {
+      border: 0;
+      border-radius: 999px;
+      background: transparent;
+      color: var(--ink-soft);
+      font: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 8px 12px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .seg button.active {
+      background: linear-gradient(130deg, var(--accent), var(--accent-3));
+      color: #fff;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+    }
+
+    .checkbox {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      font-size: 0.86rem;
+      color: var(--ink-soft);
+      user-select: none;
+    }
+
+    .checkbox input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+
+    .content {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 12px;
+      animation: rise 0.7s ease;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+    }
+
+    .stat {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 12px;
+    }
+
+    .stat::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      opacity: 0.45;
+    }
+
+    .stat .k {
+      text-transform: uppercase;
+      color: var(--ink-soft);
+      font-size: 0.73rem;
+      letter-spacing: 0.7px;
+      font-weight: 800;
+    }
+
+    .stat .v {
+      margin-top: 5px;
+      font-size: 1.24rem;
+      font-weight: 800;
+      color: var(--ink);
+    }
+
+    .stat .sub {
+      margin-top: 4px;
+      color: #566f7d;
+      font-size: 0.83rem;
+    }
+
+    .grid {
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr;
+    }
+
+    .head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+      padding: 13px 13px 10px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .head h2 {
+      margin: 0;
+      font-family: "Archivo", sans-serif;
+      font-size: 1.1rem;
+      letter-spacing: 0.2px;
+    }
+
+    .mini {
+      color: var(--ink-soft);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .cards {
+      padding: 10px;
+      display: grid;
+      gap: 9px;
+      max-height: 560px;
+      overflow: auto;
+      align-content: start;
+    }
+
+    .item {
+      border: 1px solid var(--line);
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.93);
+      padding: 10px;
+      cursor: pointer;
+      text-align: left;
+      transition: transform 0.16s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+      overflow: hidden;
+      animation: rise 0.44s ease both;
+      animation-delay: var(--delay, 0ms);
+    }
+
+    .item:hover {
+      transform: translateY(-2px);
+      border-color: rgba(0, 121, 140, 0.5);
+      box-shadow: 0 10px 24px rgba(22, 60, 83, 0.14);
+    }
+
+    .item.active {
+      border-color: rgba(0, 121, 140, 0.78);
+      background: linear-gradient(145deg, rgba(0, 121, 140, 0.1), rgba(255, 255, 255, 0.95));
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .city {
+      font-size: 0.93rem;
+      font-weight: 800;
+      color: #193644;
+      letter-spacing: 0.15px;
+    }
+
+    .code {
+      font-size: 0.78rem;
+      color: #5d7380;
+      border: 1px dashed rgba(20, 35, 46, 0.28);
+      border-radius: 999px;
+      padding: 3px 8px;
+    }
+
+    .item-mid {
+      margin-top: 7px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .fuel-name {
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-size: 0.77rem;
+      font-weight: 800;
+      color: #57707d;
+    }
+
+    .amount {
+      font-size: 1.02rem;
+      font-weight: 800;
+      color: #173342;
+    }
+
+    .meter {
+      margin-top: 8px;
+      width: 100%;
+      height: 5px;
+      border-radius: 999px;
+      background: rgba(20, 35, 46, 0.09);
+      overflow: hidden;
+    }
+
+    .meter > span {
+      display: block;
+      height: 100%;
+      width: var(--w, 0%);
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    }
+
+    .details {
+      padding: 10px;
+      max-height: 560px;
+      overflow: auto;
+      display: grid;
+      gap: 10px;
+      align-content: start;
+    }
+
+    .selected {
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 12px;
+    }
+
+    .selected h3 {
+      margin: 0;
+      font-size: 1.09rem;
+      font-family: "Archivo", sans-serif;
+      letter-spacing: 0.15px;
+    }
+
+    .selected p {
+      margin: 7px 0 0;
+      color: #566f7d;
+      font-size: 0.87rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.96);
+      font-size: 0.9rem;
+    }
+
+    th {
+      text-align: left;
+      font-size: 0.78rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.35px;
+      color: #0e4f5e;
+      background: linear-gradient(180deg, rgba(0, 121, 140, 0.15), rgba(0, 121, 140, 0.07));
+      border-bottom: 1px solid var(--line);
+      padding: 10px;
+    }
+
+    td {
+      padding: 10px;
+      border-bottom: 1px solid var(--line);
+      color: #223d4b;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .badge {
+      margin-left: 6px;
+      display: inline-block;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 0.71rem;
+      font-weight: 800;
+      border: 1px solid rgba(19, 130, 95, 0.3);
+      color: var(--ok);
+      background: rgba(19, 130, 95, 0.12);
+    }
+
+    .hint,
+    .empty {
+      border: 1px dashed rgba(20, 35, 46, 0.25);
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.75);
+      color: #5b727f;
+      padding: 14px;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    @media (min-width: 980px) {
+      .layout {
+        grid-template-columns: 300px 1fr;
+      }
+
+      .controls {
+        position: sticky;
+        top: 18px;
+      }
+
+      .stats {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 979px) {
+      .field.inline {
+        grid-template-columns: 1fr;
+      }
+
+      .cards,
+      .details {
+        max-height: none;
+      }
+    }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brandline">
+        <h1 class="title" data-i18n="title"></h1>
+        <div class="stamp" id="stamp"></div>
+      </div>
+      <p class="subtitle" data-i18n="subtitle"></p>
+    </header>
+
+    <main class="layout">
+      <aside class="panel controls">
+        <div class="field">
+          <label for="search" data-i18n="citySearch"></label>
+          <input id="search" type="search" data-i18n-placeholder="citySearchPlaceholder" />
+        </div>
+
+        <div class="field inline">
+          <div>
+            <label for="languageSelect" data-i18n="language"></label>
+            <select id="languageSelect">
+              <option value="tr">Turkce</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+          <div>
+            <label for="sortSelect" data-i18n="sort"></label>
+            <select id="sortSelect">
+              <option value="asc"></option>
+              <option value="desc"></option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="brandSelect" data-i18n="brand"></label>
+          <select id="brandSelect"></select>
+        </div>
+
+        <div class="field">
+          <label data-i18n="fuel"></label>
+          <div class="seg" id="fuelSeg">
+            <button type="button" data-fuel="gasolineAmount" class="active"></button>
+            <button type="button" data-fuel="dieselAmount"></button>
+            <button type="button" data-fuel="lpgAmount"></button>
+          </div>
+        </div>
+
+        <label class="checkbox">
+          <input id="onlyComplete" type="checkbox" />
+          <span data-i18n="onlyComplete"></span>
+        </label>
+
+        <div class="hint" data-i18n="controlHint"></div>
+      </aside>
+
+      <section class="content">
+        <section class="stats" id="stats"></section>
+
+        <section class="grid">
+          <article class="panel">
+            <div class="head">
+              <h2 data-i18n="ranking"></h2>
+              <span class="mini" id="listMeta"></span>
+            </div>
+            <div class="cards" id="cards"></div>
+          </article>
+
+          <article class="panel">
+            <div class="head">
+              <h2 data-i18n="details"></h2>
+              <span class="mini" data-i18n="detailsMini"></span>
+            </div>
+            <div class="details" id="details"></div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    // Replace this with the URL you want to read live price data from.
+    const PRICE_DATA_URL = "https://raw.githubusercontent.com/ustadimiz/fuel-data/refs/heads/main/prices.json";
+
+    const I18N = {
+      tr: {
+        title: "Turkiye Akaryakit Panorami",
+        subtitle: "Sehir bazli fiyatlari tek ekranda inceleyin, markalari karsilastirin ve en uygun secenekleri hizli bulun.",
+        citySearch: "Sehir ara",
+        citySearchPlaceholder: "Sehir adi veya kod girin",
+        language: "Dil",
+        sort: "Siralama",
+        sortAsc: "Dusukten yuksege",
+        sortDesc: "Yuksekten dusuge",
+        brand: "Marka",
+        fuel: "Yakit",
+        gasoline: "Benzin",
+        diesel: "Motorin",
+        lpg: "LPG",
+        onlyComplete: "Eksiksiz veri olan sehirleri goster",
+        controlHint: "Ipuclari: Marka ve yakit tipi secimini degistirerek fiyat farklarini aninda gor.",
+        ranking: "Sehir Siralamasi",
+        details: "Secili Sehir",
+        detailsMini: "Tum markalar",
+        results: "sonuc",
+        averageFuel: "Ortalama {fuel}",
+        cheapestCity: "En uygun sehir",
+        spread: "Fiyat araligi",
+        validCities: "Gecerli sehir",
+        maxLabel: "Maks",
+        noData: "Veri yok",
+        noMatch: "Aramaya uygun sehir bulunamadi.",
+        pickCity: "Tum markalari karsilastirmak icin listeden bir sehir secin.",
+        best: "BEST",
+        bestNote: "BEST etiketi ilgili yakit turunde en dusuk mevcut fiyati gosterir.",
+        detailHint: "Yakit tipi degistirerek farkli senaryolari hizli inceleyebilirsin.",
+        lastUpdate: "Son guncelleme",
+        noUpdate: "Guncelleme bilgisi yok",
+        error: "Veri okunamadi. PRICE_DATA_URL degerini kontrol et veya sayfayi sunucu uzerinden ac.",
+        na: "Yok"
+      },
+      en: {
+        title: "Turkey Fuel Panorama",
+        subtitle: "Explore city-level prices in one place, compare brands, and quickly spot the most affordable options.",
+        citySearch: "City search",
+        citySearchPlaceholder: "Type city name or code",
+        language: "Language",
+        sort: "Sort",
+        sortAsc: "Lowest to highest",
+        sortDesc: "Highest to lowest",
+        brand: "Brand",
+        fuel: "Fuel",
+        gasoline: "Gasoline",
+        diesel: "Diesel",
+        lpg: "LPG",
+        onlyComplete: "Show only complete data",
+        controlHint: "Tips: switch brand and fuel type to reveal price gaps instantly.",
+        ranking: "City Ranking",
+        details: "Selected City",
+        detailsMini: "All brands",
+        results: "results",
+        averageFuel: "Average {fuel}",
+        cheapestCity: "Cheapest city",
+        spread: "Price spread",
+        validCities: "Valid cities",
+        maxLabel: "Max",
+        noData: "No data",
+        noMatch: "No city matches your search.",
+        pickCity: "Select a city from the ranking to compare all brands.",
+        best: "BEST",
+        bestNote: "BEST badge marks the lowest available price for that fuel type.",
+        detailHint: "Change fuel type to inspect different scenarios quickly.",
+        lastUpdate: "Last update",
+        noUpdate: "Update info not available",
+        error: "Could not read data. Check PRICE_DATA_URL or serve this page through a web server.",
+        na: "N/A"
+      }
+    };
+
+    const BRAND_LABELS = {
+      shell: "Shell",
+      opet: "Opet",
+      petrolOfisi: "Petrol Ofisi",
+      totalEnergies: "TotalEnergies"
+    };
+
+    const state = {
+      raw: null,
+      provinces: [],
+      brands: [],
+      selectedBrand: "shell",
+      selectedFuel: "gasolineAmount",
+      sort: "asc",
+      query: "",
+      selectedCode: null,
+      onlyComplete: false,
+      lang: "tr"
+    };
+
+    function tr(key, vars = {}) {
+      const dict = I18N[state.lang] || I18N.tr;
+      let text = dict[key] || I18N.en[key] || key;
+      Object.entries(vars).forEach(([k, v]) => {
+        text = text.replaceAll("{" + k + "}", String(v));
+      });
+      return text;
+    }
+
+    function fuelLabel(key) {
+      if (key === "gasolineAmount") return tr("gasoline");
+      if (key === "dieselAmount") return tr("diesel");
+      return tr("lpg");
+    }
+
+    function getAmount(province, brand, fuel) {
+      return province?.prices?.[brand]?.[fuel] ?? null;
+    }
+
+    function isFiniteNumber(value) {
+      return Number.isFinite(value);
+    }
+
+    function formatNumber(value) {
+      const locale = state.lang === "tr" ? "tr-TR" : "en-US";
+      return new Intl.NumberFormat(locale, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(value);
+    }
+
+    function formatAmount(value) {
+      return isFiniteNumber(value) ? formatNumber(value) + " TL/L" : tr("na");
+    }
+
+    function allFuelAvailable(province) {
+      const fuels = ["gasolineAmount", "dieselAmount", "lpgAmount"];
+      return fuels.every((fuel) => isFiniteNumber(getAmount(province, state.selectedBrand, fuel)));
+    }
+
+    function getVisibleItems() {
+      const q = state.query.trim().toUpperCase();
+
+      return state.provinces
+        .filter((p) => {
+          if (q && !p.provinceName.includes(q) && !p.provinceCode.includes(q)) {
+            return false;
+          }
+          if (state.onlyComplete && !allFuelAvailable(p)) {
+            return false;
+          }
+          return true;
+        })
+        .map((p) => {
+          const value = getAmount(p, state.selectedBrand, state.selectedFuel);
+          return {
+            province: p,
+            value: isFiniteNumber(value) ? value : Infinity
+          };
+        })
+        .sort((a, b) => {
+          if (!isFiniteNumber(a.value) && !isFiniteNumber(b.value)) {
+            return a.province.provinceName.localeCompare(b.province.provinceName);
+          }
+          if (!isFiniteNumber(a.value)) return 1;
+          if (!isFiniteNumber(b.value)) return -1;
+
+          const diff = state.sort === "asc" ? a.value - b.value : b.value - a.value;
+          if (Math.abs(diff) > 0.0001) return diff;
+          return a.province.provinceName.localeCompare(b.province.provinceName);
+        });
+    }
+
+    function bestBrand(province, fuel) {
+      const options = state.brands
+        .map((brand) => ({ brand, amount: getAmount(province, brand, fuel) }))
+        .filter((x) => isFiniteNumber(x.amount));
+
+      if (!options.length) return null;
+      options.sort((a, b) => a.amount - b.amount);
+      return options[0].brand;
+    }
+
+    function renderStaticText() {
+      document.querySelectorAll("[data-i18n]").forEach((el) => {
+        el.textContent = tr(el.dataset.i18n);
+      });
+
+      document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+        el.setAttribute("placeholder", tr(el.dataset.i18nPlaceholder));
+      });
+
+      const sortSelect = document.getElementById("sortSelect");
+      sortSelect.options[0].textContent = tr("sortAsc");
+      sortSelect.options[1].textContent = tr("sortDesc");
+
+      document.querySelectorAll("#fuelSeg button").forEach((btn) => {
+        btn.textContent = fuelLabel(btn.dataset.fuel);
+      });
+
+      document.documentElement.lang = state.lang;
+      document.title = tr("title");
+    }
+
+    function renderStamp() {
+      const stamp = document.getElementById("stamp");
+      const ts = state.raw?.generatedAt?.formatted;
+      stamp.textContent = ts ? tr("lastUpdate") + ": " + ts : tr("noUpdate");
+    }
+
+    function renderBrandOptions() {
+      const select = document.getElementById("brandSelect");
+      select.innerHTML = "";
+
+      state.brands.forEach((brand) => {
+        const option = document.createElement("option");
+        option.value = brand;
+        option.textContent = BRAND_LABELS[brand] || brand;
+        select.appendChild(option);
+      });
+
+      if (!state.brands.includes(state.selectedBrand)) {
+        state.selectedBrand = state.brands[0] || "shell";
+      }
+      select.value = state.selectedBrand;
+    }
+
+    function renderStats(items) {
+      const root = document.getElementById("stats");
+      const valid = items.filter((x) => isFiniteNumber(x.value));
+      const avg = valid.length ? valid.reduce((sum, x) => sum + x.value, 0) / valid.length : null;
+      const min = valid.length ? valid[0] : null;
+      const max = valid.length ? valid[valid.length - 1] : null;
+      const spread = min && max ? max.value - min.value : null;
+
+      const cards = [
+        {
+          k: tr("averageFuel", { fuel: fuelLabel(state.selectedFuel) }),
+          v: isFiniteNumber(avg) ? formatAmount(avg) : tr("na"),
+          sub: tr("brand") + ": " + (BRAND_LABELS[state.selectedBrand] || state.selectedBrand) + " | " + tr("validCities") + ": " + valid.length
+        },
+        {
+          k: tr("cheapestCity"),
+          v: min ? min.province.provinceName : tr("na"),
+          sub: min ? formatAmount(min.value) : tr("noData")
+        },
+        {
+          k: tr("spread"),
+          v: spread !== null ? formatNumber(spread) + " TL/L" : tr("na"),
+          sub: max ? tr("maxLabel") + ": " + max.province.provinceName : tr("noData")
+        }
+      ];
+
+      root.innerHTML = "";
+      cards.forEach((card) => {
+        const el = document.createElement("div");
+        el.className = "stat";
+        el.innerHTML = '<div class="k">' + card.k + '</div><div class="v">' + card.v + '</div><div class="sub">' + card.sub + '</div>';
+        root.appendChild(el);
+      });
+    }
+
+    function renderList(items) {
+      const cards = document.getElementById("cards");
+      const meta = document.getElementById("listMeta");
+      meta.textContent = items.length + " " + tr("results");
+
+      cards.innerHTML = "";
+      if (!items.length) {
+        cards.innerHTML = '<div class="empty">' + tr("noMatch") + '</div>';
+        return;
+      }
+
+      const validValues = items.filter((x) => isFiniteNumber(x.value)).map((x) => x.value);
+      const min = validValues.length ? Math.min(...validValues) : 0;
+      const max = validValues.length ? Math.max(...validValues) : 1;
+      const spread = Math.max(max - min, 0.0001);
+
+      items.forEach((entry, idx) => {
+        const province = entry.province;
+        const amount = getAmount(province, state.selectedBrand, state.selectedFuel);
+        const active = state.selectedCode === province.provinceCode ? " active" : "";
+        const width = isFiniteNumber(amount) ? ((amount - min) / spread) * 100 : 0;
+
+        const item = document.createElement("button");
+        item.type = "button";
+        item.className = "item" + active;
+        item.style.setProperty("--delay", Math.min(idx * 15, 350) + "ms");
+        item.innerHTML =
+          '<div class="item-top"><span class="city">' + province.provinceName + '</span><span class="code">' + province.provinceCode + '</span></div>' +
+          '<div class="item-mid"><span class="fuel-name">' + fuelLabel(state.selectedFuel) + '</span><span class="amount">' + formatAmount(amount) + '</span></div>' +
+          '<div class="meter"><span style="--w:' + width.toFixed(1) + '%"></span></div>';
+
+        item.addEventListener("click", () => {
+          state.selectedCode = province.provinceCode;
+          render();
+        });
+
+        cards.appendChild(item);
+      });
+    }
+
+    function renderDetails() {
+      const root = document.getElementById("details");
+      const selected = state.provinces.find((p) => p.provinceCode === state.selectedCode) || null;
+
+      if (!selected) {
+        root.innerHTML = '<div class="empty">' + tr("pickCity") + '</div>';
+        return;
+      }
+
+      const winners = {
+        gasolineAmount: bestBrand(selected, "gasolineAmount"),
+        dieselAmount: bestBrand(selected, "dieselAmount"),
+        lpgAmount: bestBrand(selected, "lpgAmount")
+      };
+
+      const selectedBox = document.createElement("div");
+      selectedBox.className = "selected";
+      selectedBox.innerHTML = '<h3>' + selected.provinceName + ' (' + selected.provinceCode + ')</h3><p>' + tr("bestNote") + '</p>';
+
+      const table = document.createElement("table");
+      table.innerHTML =
+        '<thead><tr><th>' + tr("brand") + '</th><th>' + fuelLabel("gasolineAmount") + '</th><th>' + fuelLabel("dieselAmount") + '</th><th>' + fuelLabel("lpgAmount") + '</th></tr></thead><tbody></tbody>';
+
+      const tbody = table.querySelector("tbody");
+      state.brands.forEach((brand) => {
+        const g = getAmount(selected, brand, "gasolineAmount");
+        const d = getAmount(selected, brand, "dieselAmount");
+        const l = getAmount(selected, brand, "lpgAmount");
+        const row = document.createElement("tr");
+        row.innerHTML =
+          '<td>' + (BRAND_LABELS[brand] || brand) + '</td>' +
+          '<td>' + formatAmount(g) + (winners.gasolineAmount === brand ? '<span class="badge">' + tr("best") + '</span>' : '') + '</td>' +
+          '<td>' + formatAmount(d) + (winners.dieselAmount === brand ? '<span class="badge">' + tr("best") + '</span>' : '') + '</td>' +
+          '<td>' + formatAmount(l) + (winners.lpgAmount === brand ? '<span class="badge">' + tr("best") + '</span>' : '') + '</td>';
+        tbody.appendChild(row);
+      });
+
+      const hint = document.createElement("div");
+      hint.className = "hint";
+      hint.textContent = tr("detailHint");
+
+      root.innerHTML = "";
+      root.appendChild(selectedBox);
+      root.appendChild(table);
+      root.appendChild(hint);
+    }
+
+    function render() {
+      renderStaticText();
+      renderStamp();
+
+      const items = getVisibleItems();
+      if (!state.selectedCode && items[0]) {
+        state.selectedCode = items[0].province.provinceCode;
+      }
+
+      if (state.selectedCode && !state.provinces.find((p) => p.provinceCode === state.selectedCode)) {
+        state.selectedCode = null;
+      }
+
+      renderStats(items);
+      renderList(items);
+      renderDetails();
+
+      document.querySelectorAll("#fuelSeg button").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.fuel === state.selectedFuel);
+      });
+    }
+
+    function bindEvents() {
+      document.getElementById("search").addEventListener("input", (event) => {
+        state.query = String(event.target.value || "").toUpperCase();
+        render();
+      });
+
+      document.getElementById("languageSelect").addEventListener("change", (event) => {
+        state.lang = event.target.value;
+        render();
+      });
+
+      document.getElementById("sortSelect").addEventListener("change", (event) => {
+        state.sort = event.target.value;
+        render();
+      });
+
+      document.getElementById("brandSelect").addEventListener("change", (event) => {
+        state.selectedBrand = event.target.value;
+        render();
+      });
+
+      document.getElementById("onlyComplete").addEventListener("change", (event) => {
+        state.onlyComplete = Boolean(event.target.checked);
+        render();
+      });
+
+      document.querySelectorAll("#fuelSeg button").forEach((button) => {
+        button.addEventListener("click", () => {
+          state.selectedFuel = button.dataset.fuel;
+          render();
+        });
+      });
+    }
+
+    function showFatal(error) {
+      console.error(error);
+      document.querySelector(".content").innerHTML = '<div class="panel"><div class="empty">' + tr("error") + '</div></div>';
+      document.getElementById("stamp").textContent = tr("noUpdate");
+    }
+
+    async function loadData() {
+      const response = await fetch(PRICE_DATA_URL + "?ts=" + Date.now());
+      if (!response.ok) throw new Error("HTTP " + response.status);
+
+      const payload = await response.json();
+      const provinces = Array.isArray(payload) ? payload : (payload.provinces || []);
+      if (!Array.isArray(provinces) || !provinces.length) throw new Error("Invalid payload");
+
+      state.raw = payload;
+      state.provinces = provinces;
+      state.brands = Object.keys(provinces[0].prices || {});
+      state.selectedCode = provinces[0].provinceCode;
+
+      renderBrandOptions();
+      render();
+    }
+
+    document.getElementById("languageSelect").value = state.lang;
+    bindEvents();
+    renderStaticText();
+    loadData().catch(showFatal);
+  </script>
+</body>
+</html>
