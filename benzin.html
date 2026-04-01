@@ -518,6 +518,7 @@
       }
     }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
   <div class="app">
@@ -559,6 +560,11 @@
         </div>
 
         <div class="field">
+          <label for="snapshotSelect" data-i18n="snapshot"></label>
+          <select id="snapshotSelect"></select>
+        </div>
+
+        <div class="field">
           <label data-i18n="fuel"></label>
           <div class="seg" id="fuelSeg">
             <button type="button" data-fuel="gasolineAmount" class="active"></button>
@@ -595,6 +601,17 @@
             <div class="details" id="details"></div>
           </article>
         </section>
+
+        <article class="panel" id="historyPanel" style="display:none">
+          <div class="head">
+            <h2 data-i18n="priceHistory"></h2>
+            <span class="mini" id="historyMeta"></span>
+          </div>
+          <div style="padding:10px;position:relative;height:320px;">
+            <canvas id="historyChart"></canvas>
+          </div>
+          <div style="padding:10px" id="historyContent"></div>
+        </article>
       </section>
     </main>
   </div>
@@ -602,6 +619,7 @@
   <script>
     // Replace this with the URL you want to read live price data from.
     const PRICE_DATA_URL = "https://raw.githubusercontent.com/ustadimiz/fuel-data/refs/heads/main/prices.json";
+    const ALL_PRICES_URL = "https://raw.githubusercontent.com/ustadimiz/fuel-data/refs/heads/main/allprices.json";
 
     const I18N = {
       tr: {
@@ -638,7 +656,14 @@
         lastUpdate: "Son guncelleme",
         noUpdate: "Guncelleme bilgisi yok",
         error: "Veri okunamadi. PRICE_DATA_URL degerini kontrol et veya sayfayi sunucu uzerinden ac.",
-        na: "Yok"
+        na: "Yok",
+        snapshot: "Tarih secimi",
+        snapshotLatest: "Guncel",
+        priceHistory: "Fiyat Gecmisi",
+        historyMini: "Tum kayitlar",
+        noHistory: "Gecmis veri bulunamadi.",
+        date: "Tarih",
+        change: "Degisim"
       },
       en: {
         title: "Turkey Fuel Panorama",
@@ -674,7 +699,14 @@
         lastUpdate: "Last update",
         noUpdate: "Update info not available",
         error: "Could not read data. Check PRICE_DATA_URL or serve this page through a web server.",
-        na: "N/A"
+        na: "N/A",
+        snapshot: "Select date",
+        snapshotLatest: "Latest",
+        priceHistory: "Price History",
+        historyMini: "All records",
+        noHistory: "No historical data found.",
+        date: "Date",
+        change: "Change"
       }
     };
 
@@ -693,9 +725,11 @@
       selectedFuel: "gasolineAmount",
       sort: "asc",
       query: "",
-      selectedCode: null,
+      selectedProvinceKey: null,
       onlyComplete: false,
-      lang: "tr"
+      lang: "tr",
+      history: [],
+      snapshotIndex: -1
     };
 
     function tr(key, vars = {}) {
@@ -733,6 +767,17 @@
       return isFiniteNumber(value) ? formatNumber(value) + " TL/L" : tr("na");
     }
 
+    function getProvinces() {
+      if (state.snapshotIndex >= 0 && state.history[state.snapshotIndex]) {
+        return state.history[state.snapshotIndex].provinces || [];
+      }
+      return state.provinces;
+    }
+
+    function provinceKey(province) {
+      return province.provinceCode + "|" + province.provinceName;
+    }
+
     function allFuelAvailable(province) {
       const fuels = ["gasolineAmount", "dieselAmount", "lpgAmount"];
       return fuels.every((fuel) => isFiniteNumber(getAmount(province, state.selectedBrand, fuel)));
@@ -741,7 +786,7 @@
     function getVisibleItems() {
       const q = state.query.trim().toUpperCase();
 
-      return state.provinces
+      return getProvinces()
         .filter((p) => {
           if (q && !p.provinceName.includes(q) && !p.provinceCode.includes(q)) {
             return false;
@@ -800,11 +845,20 @@
 
       document.documentElement.lang = state.lang;
       document.title = tr("title");
+      const snapshotSelect = document.getElementById("snapshotSelect");
+      if (snapshotSelect && snapshotSelect.options.length > 0) {
+        snapshotSelect.options[0].textContent = tr("snapshotLatest");
+      }
     }
 
     function renderStamp() {
       const stamp = document.getElementById("stamp");
-      const ts = state.raw?.generatedAt?.formatted;
+      let ts;
+      if (state.snapshotIndex >= 0 && state.history[state.snapshotIndex]) {
+        ts = state.history[state.snapshotIndex].generatedAt?.formatted;
+      } else {
+        ts = state.raw?.generatedAt?.formatted;
+      }
       stamp.textContent = ts ? tr("lastUpdate") + ": " + ts : tr("noUpdate");
     }
 
@@ -823,6 +877,216 @@
         state.selectedBrand = state.brands[0] || "shell";
       }
       select.value = state.selectedBrand;
+    }
+
+    function renderSnapshotOptions() {
+      const select = document.getElementById("snapshotSelect");
+      const currentValue = String(state.snapshotIndex);
+      select.innerHTML = "";
+
+      const latestOption = document.createElement("option");
+      latestOption.value = "-1";
+      latestOption.textContent = tr("snapshotLatest");
+      select.appendChild(latestOption);
+
+      for (let i = state.history.length - 1; i >= 0; i--) {
+        const snap = state.history[i];
+        const option = document.createElement("option");
+        option.value = String(i);
+        option.textContent = snap.generatedAt?.formatted || ("Snapshot " + (i + 1));
+        select.appendChild(option);
+      }
+
+      select.value = currentValue;
+      if (select.value !== currentValue) select.value = "-1";
+    }
+
+    function renderHistory() {
+      const panel = document.getElementById("historyPanel");
+      const content = document.getElementById("historyContent");
+      const meta = document.getElementById("historyMeta");
+      const canvas = document.getElementById("historyChart");
+
+      if (!state.history.length || !state.selectedProvinceKey) {
+        panel.style.display = "none";
+        return;
+      }
+
+      panel.style.display = "";
+      meta.textContent = state.history.length + " " + tr("results");
+
+      const selected = getProvinces().find((p) => provinceKey(p) === state.selectedProvinceKey);
+
+      // Prepare chart data
+      const chartDataByDate = {};
+      state.history.forEach(function (snap) {
+        const prov = (snap.provinces || []).find(function (p) { return provinceKey(p) === state.selectedProvinceKey; });
+        if (!prov) return;
+
+        const dateStr = snap.generatedAt?.formatted || "?";
+        if (!chartDataByDate[dateStr]) {
+          chartDataByDate[dateStr] = {
+            gasolineAmount: [],
+            dieselAmount: [],
+            lpgAmount: []
+          };
+        }
+
+        state.brands.forEach(function (brand) {
+          const g = getAmount(prov, brand, "gasolineAmount");
+          const d = getAmount(prov, brand, "dieselAmount");
+          const l = getAmount(prov, brand, "lpgAmount");
+
+          if (isFiniteNumber(g)) chartDataByDate[dateStr].gasolineAmount.push(g);
+          if (isFiniteNumber(d)) chartDataByDate[dateStr].dieselAmount.push(d);
+          if (isFiniteNumber(l)) chartDataByDate[dateStr].lpgAmount.push(l);
+        });
+      });
+
+      const dates = Object.keys(chartDataByDate);
+      const gasolineAvg = dates.map(function (d) {
+        const vals = chartDataByDate[d].gasolineAmount;
+        return vals.length ? (vals.reduce(function (a, b) { return a + b; }) / vals.length) : null;
+      });
+      const dieselAvg = dates.map(function (d) {
+        const vals = chartDataByDate[d].dieselAmount;
+        return vals.length ? (vals.reduce(function (a, b) { return a + b; }) / vals.length) : null;
+      });
+      const lpgAvg = dates.map(function (d) {
+        const vals = chartDataByDate[d].lpgAmount;
+        return vals.length ? (vals.reduce(function (a, b) { return a + b; }) / vals.length) : null;
+      });
+
+      // Destroy old chart if exists
+      if (window.historyChartInstance) {
+        window.historyChartInstance.destroy();
+      }
+
+      const ctx = canvas.getContext("2d");
+      window.historyChartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: dates.map(function (d) { return d.split(" ")[0]; }),
+          datasets: [
+            {
+              label: fuelLabel("gasolineAmount"),
+              data: gasolineAvg,
+              borderColor: "rgba(239, 131, 84, 1)",
+              backgroundColor: "rgba(239, 131, 84, 0.1)",
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            },
+            {
+              label: fuelLabel("dieselAmount"),
+              data: dieselAvg,
+              borderColor: "rgba(0, 121, 140, 1)",
+              backgroundColor: "rgba(0, 121, 140, 0.1)",
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            },
+            {
+              label: fuelLabel("lpgAmount"),
+              data: lpgAvg,
+              borderColor: "rgba(19, 130, 95, 1)",
+              backgroundColor: "rgba(19, 130, 95, 0.1)",
+              borderWidth: 2,
+              fill: true,
+              tension: 0.3,
+              pointRadius: 4,
+              pointHoverRadius: 6
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: "top",
+              labels: {
+                usePointStyle: true,
+                padding: 12,
+                font: { size: 12, weight: "600" },
+                color: "var(--ink-soft)"
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: false,
+              ticks: { color: "var(--ink-soft)" },
+              grid: { color: "rgba(20, 35, 46, 0.05)" }
+            },
+            x: {
+              ticks: { color: "var(--ink-soft)" },
+              grid: { color: "rgba(20, 35, 46, 0.05)" }
+            }
+          }
+        }
+      });
+
+      // Render table
+      const heading = document.createElement("div");
+      heading.style.cssText = "font-size:0.85rem;font-weight:700;color:var(--ink-soft);padding:4px 2px 8px;text-transform:uppercase;letter-spacing:0.5px";
+      heading.textContent = (selected ? selected.provinceName + " \u2014 " : "") + (BRAND_LABELS[state.selectedBrand] || state.selectedBrand);
+
+      const table = document.createElement("table");
+      table.innerHTML =
+        "<thead><tr>" +
+        "<th>" + tr("date") + "</th>" +
+        "<th>" + fuelLabel("gasolineAmount") + "</th>" +
+        "<th>" + fuelLabel("dieselAmount") + "</th>" +
+        "<th>" + fuelLabel("lpgAmount") + "</th>" +
+        "</tr></thead><tbody></tbody>";
+
+      const tbody = table.querySelector("tbody");
+      const snapshots = [...state.history].reverse();
+
+      snapshots.forEach(function (snap, idx) {
+        const province = (snap.provinces || []).find(function (p) { return provinceKey(p) === state.selectedProvinceKey; });
+        if (!province) return;
+
+        const g = getAmount(province, state.selectedBrand, "gasolineAmount");
+        const d = getAmount(province, state.selectedBrand, "dieselAmount");
+        const l = getAmount(province, state.selectedBrand, "lpgAmount");
+
+        const nextSnap = snapshots[idx + 1];
+        const nextProv = nextSnap
+          ? (nextSnap.provinces || []).find(function (p) { return provinceKey(p) === state.selectedProvinceKey; })
+          : null;
+
+        function diffHtml(current, fuel) {
+          if (!isFiniteNumber(current) || !nextProv) return "";
+          const prev = getAmount(nextProv, state.selectedBrand, fuel);
+          if (!isFiniteNumber(prev)) return "";
+          const diff = current - prev;
+          if (Math.abs(diff) < 0.001) return " <span style=\"color:var(--ink-soft)\">&#9679;</span>";
+          if (diff > 0) return " <span style=\"color:var(--warn)\">&#9650; " + formatNumber(Math.abs(diff)) + "</span>";
+          return " <span style=\"color:var(--ok)\">&#9660; " + formatNumber(Math.abs(diff)) + "</span>";
+        }
+
+        const row = document.createElement("tr");
+        row.innerHTML =
+          "<td>" + (snap.generatedAt?.formatted || "?") + "</td>" +
+          "<td>" + formatAmount(g) + diffHtml(g, "gasolineAmount") + "</td>" +
+          "<td>" + formatAmount(d) + diffHtml(d, "dieselAmount") + "</td>" +
+          "<td>" + formatAmount(l) + diffHtml(l, "lpgAmount") + "</td>";
+        tbody.appendChild(row);
+      });
+
+      content.innerHTML = "";
+      content.appendChild(heading);
+      const wrap = document.createElement("div");
+      wrap.style.overflowX = "auto";
+      wrap.appendChild(table);
+      content.appendChild(wrap);
     }
 
     function renderStats(items) {
@@ -879,7 +1143,7 @@
       items.forEach((entry, idx) => {
         const province = entry.province;
         const amount = getAmount(province, state.selectedBrand, state.selectedFuel);
-        const active = state.selectedCode === province.provinceCode ? " active" : "";
+        const active = state.selectedProvinceKey === provinceKey(province) ? " active" : "";
         const width = isFiniteNumber(amount) ? ((amount - min) / spread) * 100 : 0;
 
         const item = document.createElement("button");
@@ -892,7 +1156,9 @@
           '<div class="meter"><span style="--w:' + width.toFixed(1) + '%"></span></div>';
 
         item.addEventListener("click", () => {
-          state.selectedCode = province.provinceCode;
+          state.selectedProvinceKey = provinceKey(province);
+          state.query = "";
+          document.getElementById("search").value = "";
           render();
         });
 
@@ -902,7 +1168,7 @@
 
     function renderDetails() {
       const root = document.getElementById("details");
-      const selected = state.provinces.find((p) => p.provinceCode === state.selectedCode) || null;
+      const selected = getProvinces().find((p) => provinceKey(p) === state.selectedProvinceKey) || null;
 
       if (!selected) {
         root.innerHTML = '<div class="empty">' + tr("pickCity") + '</div>';
@@ -952,17 +1218,18 @@
       renderStamp();
 
       const items = getVisibleItems();
-      if (!state.selectedCode && items[0]) {
-        state.selectedCode = items[0].province.provinceCode;
+      if (!state.selectedProvinceKey && items[0]) {
+        state.selectedProvinceKey = provinceKey(items[0].province);
       }
 
-      if (state.selectedCode && !state.provinces.find((p) => p.provinceCode === state.selectedCode)) {
-        state.selectedCode = null;
+      if (state.selectedProvinceKey && !getProvinces().find((p) => provinceKey(p) === state.selectedProvinceKey)) {
+        state.selectedProvinceKey = null;
       }
 
       renderStats(items);
       renderList(items);
       renderDetails();
+      renderHistory();
 
       document.querySelectorAll("#fuelSeg button").forEach((btn) => {
         btn.classList.toggle("active", btn.dataset.fuel === state.selectedFuel);
@@ -995,6 +1262,11 @@
         render();
       });
 
+      document.getElementById("snapshotSelect").addEventListener("change", (event) => {
+        state.snapshotIndex = parseInt(event.target.value, 10);
+        render();
+      });
+
       document.querySelectorAll("#fuelSeg button").forEach((button) => {
         button.addEventListener("click", () => {
           state.selectedFuel = button.dataset.fuel;
@@ -1010,19 +1282,29 @@
     }
 
     async function loadData() {
-      const response = await fetch(PRICE_DATA_URL + "?ts=" + Date.now());
-      if (!response.ok) throw new Error("HTTP " + response.status);
+      const [priceRes, histRes] = await Promise.all([
+        fetch(PRICE_DATA_URL + "?ts=" + Date.now()),
+        fetch(ALL_PRICES_URL + "?ts=" + Date.now()).catch(() => null)
+      ]);
 
-      const payload = await response.json();
+      if (!priceRes.ok) throw new Error("HTTP " + priceRes.status);
+
+      const payload = await priceRes.json();
       const provinces = Array.isArray(payload) ? payload : (payload.provinces || []);
       if (!Array.isArray(provinces) || !provinces.length) throw new Error("Invalid payload");
 
       state.raw = payload;
       state.provinces = provinces;
       state.brands = Object.keys(provinces[0].prices || {});
-      state.selectedCode = provinces[0].provinceCode;
+      state.selectedProvinceKey = provinceKey(provinces[0]);
+
+      if (histRes && histRes.ok) {
+        const histPayload = await histRes.json();
+        state.history = Array.isArray(histPayload) ? histPayload : [];
+      }
 
       renderBrandOptions();
+      renderSnapshotOptions();
       render();
     }
 
